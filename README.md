@@ -12,8 +12,9 @@ Add this block to a daily-note template:
 ````
 
 The header uses the file name to render the current date and links to the
-nearest dated notes in the configured daily-notes folder. It does not use
-Dataview or a periodic refresh, so it has a stable layout while editing.
+nearest dated notes in the folder configured by Obsidian's core Daily notes
+plugin. It does not use Dataview or a periodic refresh, so it has a stable
+layout while editing. An optional plugin setting can override that folder.
 
 ## Development
 

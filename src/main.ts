@@ -20,12 +20,16 @@ type ParseDate = (value: string, format: string, strict: boolean) => DailyDate;
 const parseDate = obsidianMoment as unknown as ParseDate;
 
 interface DailyWorkflowSettings {
-  dailyNotesFolder: string;
+  dailyNotesFolderOverride: string;
   dateFormat: string;
 }
 
+interface DailyNotesSettings {
+  folder?: unknown;
+}
+
 const DEFAULT_SETTINGS: DailyWorkflowSettings = {
-  dailyNotesFolder: "03 Daily Notes",
+  dailyNotesFolderOverride: "",
   dateFormat: "YYYY-MM-DD",
 };
 
@@ -37,12 +41,18 @@ export default class DailyWorkflowPlugin extends Plugin {
     this.addSettingTab(new DailyWorkflowSettingTab(this.app, this));
     this.registerMarkdownCodeBlockProcessor(
       "daily-header",
-      (_source, container, context) => {
+      async (_source, container, context) => {
         const file = this.app.vault.getFileByPath(context.sourcePath);
+        const dailyNotesFolder = await this.dailyNotesFolder();
 
-        if (file) {
-          this.renderDailyHeader(container, file);
+        if (!file || !dailyNotesFolder) {
+          container.createEl("em", {
+            text: "Daily header: configure the core Daily notes folder.",
+          });
+          return;
         }
+
+        this.renderDailyHeader(container, file, dailyNotesFolder);
       },
     );
   }
@@ -55,7 +65,11 @@ export default class DailyWorkflowPlugin extends Plugin {
     await this.saveData(this.settings);
   }
 
-  private renderDailyHeader(container: HTMLElement, currentFile: TFile): void {
+  private renderDailyHeader(
+    container: HTMLElement,
+    currentFile: TFile,
+    dailyNotesFolder: string,
+  ): void {
     const currentDate = parseDate(
       currentFile.basename,
       this.settings.dateFormat,
@@ -70,7 +84,7 @@ export default class DailyWorkflowPlugin extends Plugin {
     }
 
     const header = container.createDiv({ cls: "daily-workflow-header" });
-    const dailyFiles = this.dailyFiles();
+    const dailyFiles = this.dailyFiles(dailyNotesFolder);
     const previousFile = this.adjacentFile(dailyFiles, currentDate, -1);
     const nextFile = this.adjacentFile(dailyFiles, currentDate, 1);
 
@@ -94,9 +108,29 @@ export default class DailyWorkflowPlugin extends Plugin {
     );
   }
 
-  private dailyFiles(): TFile[] {
-    const folder = this.settings.dailyNotesFolder.replace(/\/$/, "");
+  private async dailyNotesFolder(): Promise<string | undefined> {
+    const override = this.settings.dailyNotesFolderOverride.replace(/\/$/, "");
 
+    if (override) {
+      return override;
+    }
+
+    try {
+      const path = `${this.app.vault.configDir}/daily-notes.json`;
+      const contents = await this.app.vault.adapter.read(path);
+      const settings = JSON.parse(contents) as DailyNotesSettings;
+
+      if (typeof settings.folder !== "string") {
+        return undefined;
+      }
+
+      return settings.folder.replace(/\/$/, "") || undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private dailyFiles(folder: string): TFile[] {
     return this.app.vault.getMarkdownFiles().filter((file) =>
       file.path.startsWith(`${folder}/`),
     );
@@ -154,13 +188,13 @@ class DailyWorkflowSettingTab extends PluginSettingTab {
     containerEl.empty();
 
     new Setting(containerEl)
-      .setName("Daily notes folder")
-      .setDesc("Folder containing the dated daily notes.")
+      .setName("Daily notes folder override")
+      .setDesc("Leave empty to use the core Daily notes setting.")
       .addText((text) => text
-        .setPlaceholder(DEFAULT_SETTINGS.dailyNotesFolder)
-        .setValue(this.plugin.settings.dailyNotesFolder)
+        .setPlaceholder("Use core Daily notes setting")
+        .setValue(this.plugin.settings.dailyNotesFolderOverride)
         .onChange(async (value) => {
-          this.plugin.settings.dailyNotesFolder = value.trim();
+          this.plugin.settings.dailyNotesFolderOverride = value.trim();
           await this.plugin.saveSettings();
         }));
 
