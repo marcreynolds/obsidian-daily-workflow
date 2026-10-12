@@ -6,6 +6,7 @@ import {
   TFile,
   moment as obsidianMoment,
 } from "obsidian";
+import { GoalTrackerView } from "./goals/view";
 
 interface DailyDate {
   isAfter(date: DailyDate): boolean;
@@ -53,6 +54,19 @@ export default class DailyWorkflowPlugin extends Plugin {
         }
 
         this.renderDailyHeader(container, file, dailyNotesFolder);
+      },
+    );
+    this.registerMarkdownCodeBlockProcessor(
+      "goal-tracker",
+      (source, container, context) => {
+        context.addChild(new GoalTrackerView(container, source, {
+          app: this.app,
+          dailyFiles: async () => {
+            const folder = await this.dailyNotesFolder();
+            return folder ? this.dailyFiles(folder) : undefined;
+          },
+          dateFormat: () => this.settings.dateFormat,
+        }));
       },
     );
   }
@@ -108,7 +122,7 @@ export default class DailyWorkflowPlugin extends Plugin {
     );
   }
 
-  private async dailyNotesFolder(): Promise<string | undefined> {
+  async dailyNotesFolder(): Promise<string | undefined> {
     const override = this.settings.dailyNotesFolderOverride.replace(/\/$/, "");
 
     if (override) {
@@ -130,7 +144,7 @@ export default class DailyWorkflowPlugin extends Plugin {
     }
   }
 
-  private dailyFiles(folder: string): TFile[] {
+  dailyFiles(folder: string): TFile[] {
     return this.app.vault.getMarkdownFiles().filter((file) =>
       file.path.startsWith(`${folder}/`),
     );

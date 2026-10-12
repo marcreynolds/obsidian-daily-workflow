@@ -14,3 +14,11 @@
 .daily-workflow-header__next {
   text-align: right;
 }
+
+.goal-tracker__frequency {
+  color: var(--text-muted);
+}
+
+.goal-tracker__error {
+  color: var(--text-error);
+}
