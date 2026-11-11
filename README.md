@@ -2,6 +2,12 @@
 
 A private Obsidian plugin for daily-note workflow utilities.
 
+## Daily note for a date
+
+Use the calendar-plus ribbon button or the **Open daily note for date**
+command to select a date. The plugin opens an existing note or creates one
+using the core Daily notes folder, filename format, and template.
+
 ## Daily header
 
 Add this block to a daily-note template:

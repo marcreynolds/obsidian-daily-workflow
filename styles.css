@@ -22,3 +22,16 @@
 .goal-tracker__error {
   color: var(--text-error);
 }
+
+.daily-workflow-date-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 1em;
+}
+
+.daily-workflow-date-form > label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+}
